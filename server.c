@@ -374,11 +374,11 @@ int main(int argc, char *argv[])
 				int from, carte;
 				sscanf(buffer, "G %d %d", &from, &carte);
 				if (carte == deck[12]) {
-					sprintf(reply, "W %d", from); // Win
+					sprintf(reply, "W %d", from); 
 					broadcastMessage(reply);
 				} else {
 					elimine[from] = 1;
-					sprintf(reply, "X %d", from); // Eliminé
+					sprintf(reply, "X %d", from); 
 					broadcastMessage(reply);
 				}
 				joueurCourant = prochainJoueur();
