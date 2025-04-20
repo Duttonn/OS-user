@@ -25,7 +25,7 @@ char *nomcartes[]=
   "inspector Hopkins", "Sherlock Holmes", "John Watson", "Mycroft Holmes",
   "Mrs. Hudson", "Mary Morstan", "James Moriarty"};
 int joueurCourant;
-
+int elimine[4] = {0, 0, 0, 0}; 
 void error(const char *msg)
 {
     perror(msg);
@@ -167,6 +167,15 @@ int findClientByName(char *name)
         return -1;
 }
 
+
+int prochainJoueur() {
+    for (int i = 1; i <= 4; i++) {
+        int suivant = (joueurCourant + i) % 4;
+        if (!elimine[suivant]) return suivant;
+    }
+    return -1;
+	}
+
 void sendMessageToClient(char *clientip,int clientport,char *mess)
 {
     int sockfd, portno, n;
@@ -248,6 +257,11 @@ int main(int argc, char *argv[])
 	createTable();
 	printDeck();
 	joueurCourant=0;
+
+
+	
+
+	
 
 	for (i=0;i<4;i++)
 	{
@@ -353,28 +367,61 @@ int main(int argc, char *argv[])
                 }
 	}
 	else if (fsmServer==1)
-{
-	switch (buffer[0])
 	{
-		case 'G':
-			// RAJOUTER DU CODE ICI
-			// On transmet simplement le message a tout le monde
-			broadcastMessage(buffer);
-			break;
-		case 'O':
-			// RAJOUTER DU CODE ICI
-			// On transmet simplement le message a tout le monde
-			broadcastMessage(buffer);
-			break;
-		case 'S':
-			// RAJOUTER DU CODE ICI
-			// On transmet simplement le message a tout le monde
-			broadcastMessage(buffer);
-			break;
-		default:
-			break;
+		switch (buffer[0])
+		{
+			case 'G': {
+				int from, carte;
+				sscanf(buffer, "G %d %d", &from, &carte);
+				if (carte == deck[12]) {
+					sprintf(reply, "W %d", from); // Win
+					broadcastMessage(reply);
+				} else {
+					elimine[from] = 1;
+					sprintf(reply, "X %d", from); // Eliminé
+					broadcastMessage(reply);
+				}
+				joueurCourant = prochainJoueur();
+				if (joueurCourant != -1) {
+					sprintf(reply, "M %d", joueurCourant);
+					broadcastMessage(reply);
+				}
+				break;
+			}
+			case 'O': {
+				int from, objet;
+				sscanf(buffer, "O %d %d", &from, &objet);
+				for (int i = 0; i < 4; i++) {
+					if (i != from && tableCartes[i][objet] > 0 && !elimine[i]) {
+						sprintf(reply, "R %d", i);
+						sendMessageToClient(tcpClients[from].ipAddress, tcpClients[from].port, reply);
+					}
+				}
+				joueurCourant = prochainJoueur();
+				if (joueurCourant != -1) {
+					sprintf(reply, "M %d", joueurCourant);
+					broadcastMessage(reply);
+				}
+				break;
+			}
+			case 'S': {
+				int from, cible, objet;
+				sscanf(buffer, "S %d %d %d", &from, &cible, &objet);
+				if (!elimine[cible]) {
+					sprintf(reply, "R %d", tableCartes[cible][objet]);
+					sendMessageToClient(tcpClients[from].ipAddress, tcpClients[from].port, reply);
+				}
+				joueurCourant = prochainJoueur();
+				if (joueurCourant != -1) {
+					sprintf(reply, "M %d", joueurCourant);
+					broadcastMessage(reply);
+				}
+				break;
+			}
+			default:
+				break;
+		}
 	}
-}
      	close(newsockfd);
      }
      close(sockfd);
